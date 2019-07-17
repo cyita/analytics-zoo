@@ -17,11 +17,11 @@ package com.intel.analytics.zoo.examples.inception
 
 import com.intel.analytics.bigdl._
 import com.intel.analytics.bigdl.models.inception.Inception_v1_NoAuxClassifier
-import com.intel.analytics.bigdl.nn.{ClassNLLCriterion, Module}
+import com.intel.analytics.bigdl.nn._
 import com.intel.analytics.bigdl.optim.SGD.{Poly, SequentialSchedule, Warmup}
 import com.intel.analytics.bigdl.optim._
 import com.intel.analytics.bigdl.utils.{Engine, LoggerFilter, T, Table}
-import com.intel.analytics.zoo.feature.pmem.MemoryType
+import com.intel.analytics.zoo.feature.pmem.{MemoryType, PARTITIONED}
 import com.intel.analytics.zoo.pipeline.api.keras.layers.utils.EngineRef
 import com.intel.analytics.zoo.pipeline.estimator.{ConstantClipping, Estimator, L2NormClipping}
 import org.apache.spark.SparkContext
@@ -111,6 +111,7 @@ object TrainInceptionV1 {
         checkPointTrigger = Some(checkpointTrigger),
         valSet, Array(new Top1Accuracy[Float], new Top5Accuracy[Float]))
 
+      estimator.close()
       sc.stop()
     })
   }
