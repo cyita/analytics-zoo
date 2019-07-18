@@ -8,8 +8,9 @@ import com.intel.analytics.bigdl.optim.{Adagrad, Trigger}
 import com.intel.analytics.bigdl.tensor.Tensor
 import com.intel.analytics.bigdl.tensor.TensorNumericMath.TensorNumeric
 import com.intel.analytics.zoo.apps.textclassfication.processing.TextProcessing
-import com.intel.analytics.zoo.common.NNContext
+import com.intel.analytics.zoo.common.{EveryEpoch, MaxEpoch, NNContext}
 import com.intel.analytics.zoo.feature.FeatureSet
+import com.intel.analytics.zoo.feature.pmem.DISK_AND_DRAM
 import com.intel.analytics.zoo.pipeline.api.keras.layers._
 import com.intel.analytics.zoo.pipeline.api.keras.metrics.Accuracy
 import com.intel.analytics.zoo.pipeline.api.keras.models.Sequential
@@ -124,10 +125,11 @@ object TextClassificationTrainer extends TextProcessing {
       val model = buildModel(embeddingFile, wordToIndexMap, sequenceLength, classNum)
 
       val optimMethod = new Adagrad[Float](learningRate = 0.01, learningRateDecay = 0.001)
-      val (checkpointTrigger, endTrigger) = (Trigger.everyEpoch, Trigger.maxEpoch(nbEpoch))
+      val (checkpointTrigger, endTrigger) = (EveryEpoch(), MaxEpoch(nbEpoch))
+      //val (checkpointTrigger, endTrigger) = (Trigger.everyEpoch, Trigger.maxEpoch(nbEpoch))
       val sample2batch = SampleToMiniBatch[Float](batchSize)
-      val trainSet = FeatureSet.rdd(trainings.cache()) -> sample2batch
-      val valSet = FeatureSet.rdd(validations.cache()) -> sample2batch
+      val trainSet = FeatureSet.rdd(trainings, DISK_AND_DRAM(2)) -> sample2batch
+      val valSet = FeatureSet.rdd(validations) -> sample2batch
 
       val estimator = Estimator[Float](model, optimMethod)
 

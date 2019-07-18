@@ -360,6 +360,7 @@ class DiskFeatureSet[T: ClassTag]
         }
         currentFeatureSet.cache()
         trained = true
+        currentFeatureSet.shuffle()
         currentFeatureSet.data(train)
       } else {
         currentFeatureSet.data(train)
