@@ -18,6 +18,14 @@ package com.intel.analytics.zoo.common
 
 import org.apache.hadoop.fs.Path
 import org.scalatest.{FlatSpec, Matchers}
+import java.io.FileOutputStream
+
+import com.intel.analytics.bigdl.dataset.Utils
+import com.intel.analytics.bigdl.tensor.Tensor
+import com.intel.analytics.bigdl.numeric.NumericFloat
+import com.intel.analytics.bigdl.python.api.PythonBigDL
+import com.intel.analytics.bigdl.utils.T
+import org.apache.spark.bigdl.api.python.BigDLSerDe
 
 import scala.util.Random
 
@@ -49,5 +57,20 @@ class UtilsSpec extends FlatSpec with Matchers {
     // Delete random file
     fs.deleteOnExit(new Path(path + "/" + randomFile))
     fs.close()
+  }
+
+  "Tensor pickle" should "work properly" in {
+    val pickleFilename = "/home/yina/Documents/intel/analytics-zoo/pyzoo/test/zoo/common" +
+      "/testpickle.dat"
+    val fos = new FileOutputStream(pickleFilename)
+    val tensor = Tensor(T(
+      T(6.1f, 5.2f, 4.3f),
+      T(3.4f, 2.5f, 1.6f)))
+    val jTensor = PythonBigDL.ofFloat().toJTensor(tensor)
+    val tensorDump = BigDLSerDe.dumps(jTensor)
+    fos.write(tensorDump)
+    fos.flush()
+    fos.close()
+    System.out.println(tensorDump)
   }
 }
