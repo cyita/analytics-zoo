@@ -18,7 +18,7 @@ package com.intel.analytics.zoo.models.python
 
 import java.util.{List => JList, Map => JMap}
 
-import com.intel.analytics.bigdl.{Criterion}
+import com.intel.analytics.bigdl.Criterion
 import com.intel.analytics.bigdl.dataset.PaddingParam
 import com.intel.analytics.bigdl.nn.abstractnn.{AbstractModule, Activity}
 import com.intel.analytics.bigdl.nn.keras.KerasLayer
@@ -37,6 +37,7 @@ import com.intel.analytics.zoo.models.common.{KerasZooModel, Ranker, ZooModel}
 import com.intel.analytics.zoo.models.image.common.{ImageConfigure, ImageModel}
 import com.intel.analytics.zoo.models.image.objectdetection._
 import com.intel.analytics.zoo.models.image.imageclassification.{ImageClassifier, LabelReader => IMCLabelReader}
+import com.intel.analytics.zoo.models.image.objectdetection.common.loss.{MultiBoxLoss, MultiBoxLossParam}
 import com.intel.analytics.zoo.models.recommendation.{NeuralCF, Recommender, UserItemFeature, UserItemPrediction}
 import com.intel.analytics.zoo.models.recommendation._
 import com.intel.analytics.zoo.models.seq2seq.{RNNDecoder, RNNEncoder, Seq2seq}
@@ -46,7 +47,7 @@ import com.intel.analytics.zoo.pipeline.api.keras.layers.{Embedding, WordEmbeddi
 import com.intel.analytics.zoo.pipeline.api.keras.models.KerasNet
 import org.apache.spark.api.java.JavaRDD
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{DataFrame}
+import org.apache.spark.sql.DataFrame
 
 import scala.reflect.ClassTag
 import scala.collection.JavaConverters._
@@ -495,5 +496,17 @@ class PythonZooModel[T: ClassTag](implicit ev: TensorNumeric[T]) extends PythonZ
 
   def getModule(model: KerasZooModel[Activity, Activity, T]): KerasNet[T] = {
     model.model.asInstanceOf[KerasNet[T]]
+  }
+
+  def createMultiBoxCriterion(locWeight: Double = 1.0, nClasses: Int = 21,
+                              shareLocation: Boolean = true,
+                              overlapThreshold: Double = 0.5,
+                              bgLabelInd: Int = 0,
+                              useDifficultGt: Boolean = true,
+                              negPosRatio: Double = 3.0,
+                              negOverlap: Double = 0.5): MultiBoxLoss[T] = {
+    val param = MultiBoxLossParam(locWeight, nClasses, shareLocation, overlapThreshold, bgLabelInd,
+      useDifficultGt, negPosRatio, negOverlap)
+    new MultiBoxLoss[T](param)
   }
 }

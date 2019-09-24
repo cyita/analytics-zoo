@@ -50,7 +50,7 @@ class TorchCriterion(Criterion):
         super(TorchCriterion, self).__init__(None, bigdl_type, path)
 
     @staticmethod
-    def from_pytorch(loss, input, label=None):
+    def from_pytorch(loss, input, label=None, check_trace=True):
         """
         Create a TorchCriterion directly from PyTorch function. We need users to provide example
         input and label (or just their sizes) to trace the loss function.
@@ -83,7 +83,7 @@ class TorchCriterion(Criterion):
         sample_label = TorchNet.get_sample_input(label)
 
         traced_script_loss = torch.jit.trace(LossWrapperModule(loss),
-                                             (sample_input, sample_label))
+                                             (sample_input, sample_label), check_trace=check_trace)
         lossPath = os.path.join(temp, "loss.pt")
         traced_script_loss.save(lossPath)
 

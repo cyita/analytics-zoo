@@ -15,3 +15,4 @@
 #
 
 from .object_detector import *
+from .criterion import *

@@ -24,7 +24,8 @@ import com.intel.analytics.bigdl.optim.{OptimMethod, Trigger, ValidationMethod, 
 import com.intel.analytics.bigdl.tensor.TensorNumericMath.TensorNumeric
 import com.intel.analytics.bigdl.transform.vision.image.{ImageFeature, ImageFeatureToMiniBatch}
 import com.intel.analytics.zoo.common.PythonZoo
-import com.intel.analytics.zoo.feature.{DistributedFeatureSet, FeatureSet}
+import com.intel.analytics.zoo.feature.{FeatureSet}
+import com.intel.analytics.zoo.models.image.objectdetection.ssd.RoiImageToSSDBatch
 import com.intel.analytics.zoo.pipeline.estimator.Estimator
 
 import scala.reflect.ClassTag
@@ -94,24 +95,45 @@ class PythonEstimator[T: ClassTag](implicit ev: TensorNumeric[T]) extends Python
                                  checkPointTrigger: Trigger = null,
                                  validationSet: FeatureSet[ImageFeature] = null,
                                  validationMethod: JList[ValidationMethod[T]] = null,
-                                 batchSize: Int)
+                                 batchSize: Int, trainType: String = "Normal")
   : estimator.type = {
-    val imageFeature2batch = ImageFeatureToMiniBatch(batchSize)
-    val trainMiniBatch = trainSet -> imageFeature2batch
-    val validationMiniBatch = if (validationSet != null) {
-      validationSet -> imageFeature2batch
+    if (trainType == "Normal") {
+      val imageFeature2batch = ImageFeatureToMiniBatch(batchSize)
+      val trainMiniBatch = trainSet -> imageFeature2batch
+      val validationMiniBatch = if (validationSet != null) {
+        validationSet -> imageFeature2batch
+      } else {
+        null
+      }
+      val valMethods = if (validationMethod != null) {
+        validationMethod.asScala.toArray
+      } else {
+        null
+      }
+
+      estimator.train(trainMiniBatch, criterion,
+        Some(endTrigger), Some(checkPointTrigger),
+        validationMiniBatch, valMethods)
     } else {
-      null
-    }
-    val valMethods = if (validationMethod != null) {
-      validationMethod.asScala.toArray
-    } else {
-      null
+      val imageFeature2SSDBatch = RoiImageToSSDBatch(batchSize)
+      val trainMiniBatch = trainSet -> imageFeature2SSDBatch
+      val validationMiniBatch = if (validationSet != null) {
+        validationSet -> imageFeature2SSDBatch
+      } else {
+        null
+      }
+      val valMethods = if (validationMethod != null) {
+        validationMethod.asScala.toArray
+      } else {
+        null
+      }
+      estimator.train(trainMiniBatch.asInstanceOf[FeatureSet[MiniBatch[T]]], criterion,
+        Some(endTrigger),
+        Some(checkPointTrigger),
+        validationMiniBatch.asInstanceOf[FeatureSet[MiniBatch[T]]],
+        valMethods)
     }
 
-    estimator.train(trainMiniBatch, criterion,
-      Some(endTrigger), Some(checkPointTrigger),
-      validationMiniBatch, valMethods)
   }
 
   def clearGradientClipping(estimator: Estimator[T]): Unit = {

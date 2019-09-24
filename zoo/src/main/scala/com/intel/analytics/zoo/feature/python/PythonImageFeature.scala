@@ -367,6 +367,14 @@ class PythonImageFeature[T: ClassTag](implicit ev: TensorNumeric[T]) extends Pyt
     ImageSetToSample[T](inputKeys.asScala.toArray, targets, sampleKey)
   }
 
+  def createImageMatToFloats(validHeight: Int = 300,
+                             validWidth: Int = 300,
+                             validChannels: Int = 3,
+                             outKey: String = ImageFeature.floats,
+                             shareBuffer: Boolean = true): ImageMatToFloats = {
+    ImageMatToFloats(validHeight, validWidth, validChannels, outKey, shareBuffer)
+  }
+
   def imageSetToImageFrame(imageSet: ImageSet): ImageFrame = {
     imageSet.toImageFrame()
   }

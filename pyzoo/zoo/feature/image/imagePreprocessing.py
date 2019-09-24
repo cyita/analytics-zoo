@@ -130,6 +130,18 @@ class ImageMatToTensor(ImagePreprocessing):
                                                share_buffer, format)
 
 
+class ImageMatToFloats(ImagePreprocessing):
+    # validHeight: Int = 300,
+    # validWidth: Int = 300,
+    # validChannels: Int = 3,
+    # outKey: String = ImageFeature.floats,
+    # shareBuffer: Boolean = true
+    def __init__(self, valid_height=300, valid_width=300, valid_channels=3,
+                 out_key="floats", share_buffer=True, bigdl_type="float"):
+        super(ImageMatToFloats, self).__init__(bigdl_type, valid_height, valid_width,
+                                               valid_channels, out_key, share_buffer)
+
+
 class ImageSetToSample(ImagePreprocessing):
     """
     transform imageframe to samples
