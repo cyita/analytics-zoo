@@ -1,8 +1,5 @@
 package com.intel.analytics.zoo.feature.image3d
 
-import java.net.URL
-
-import com.intel.analytics.bigdl.python.api.PythonBigDL
 import org.scalatest.{FlatSpec, Matchers}
 import com.intel.analytics.bigdl.python
 import com.intel.analytics.bigdl.transform.vision.image.{DistributedImageFrame, ImageFeature, LocalImageFrame}
@@ -15,10 +12,7 @@ import com.intel.analytics.zoo.common.NNContext
 import com.intel.analytics.zoo.feature.FeatureSet
 import com.intel.analytics.zoo.feature.image.ImageMatToFloats
 import com.intel.analytics.zoo.feature.image.roi.RoiFeatureLabelConverter
-import com.intel.analytics.zoo.feature.pmem.MemoryType
-import com.intel.analytics.zoo.models.image.objectdetection.ssd.RoiImageToSSDBatch
 import com.intel.analytics.zoo.pipeline.api.keras.ZooSpecHelper
-import com.intel.analytics.zoo.pipeline.estimator.Estimator
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.SQLContext
@@ -38,6 +32,11 @@ class RoiConverterSpec  extends ZooSpecHelper with Matchers {
     val feature = new ImageFeature()
     var images = new JArrayList[Array[Float]]()
     var labels = new JArrayList[Tensor[Float]]()
+
+    val tensor: Tensor[Float] = Tensor(T(
+      T(0f, 1f, 2f, 3f, 4f, 5f),
+      T(0f, 4f, 5f, 6f, 7f, 8f)))
+    val s = tensor.dim()
 
     for (i <- 1 to 3) {
       images.add(Array.fill(519168){scala.util.Random.nextFloat()})
