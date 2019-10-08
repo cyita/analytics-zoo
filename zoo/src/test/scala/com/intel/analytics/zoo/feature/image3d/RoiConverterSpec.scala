@@ -5,13 +5,14 @@ import com.intel.analytics.bigdl.python
 import com.intel.analytics.bigdl.transform.vision.image.{DistributedImageFrame, ImageFeature, LocalImageFrame}
 import java.util.{ArrayList => JArrayList, HashMap => JHashMap, List => JList, Map => JMap}
 
-import com.intel.analytics.bigdl.tensor.Tensor
+import com.intel.analytics.bigdl.tensor.{Storage, Tensor}
 import com.intel.analytics.bigdl.transform.vision.image.opencv.OpenCVMat
 import com.intel.analytics.bigdl.utils.T
 import com.intel.analytics.zoo.common.NNContext
 import com.intel.analytics.zoo.feature.FeatureSet
 import com.intel.analytics.zoo.feature.image.ImageMatToFloats
 import com.intel.analytics.zoo.feature.image.roi.RoiFeatureLabelConverter
+import com.intel.analytics.zoo.models.image.objectdetection.common.loss.{YOLOLoss, YOLOLossParam}
 import com.intel.analytics.zoo.pipeline.api.keras.ZooSpecHelper
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkConf, SparkContext}
@@ -26,6 +27,16 @@ class RoiConverterSpec  extends ZooSpecHelper with Matchers {
     val conf = new SparkConf().setMaster("local[1]").setAppName("NCFTest")
     sc = NNContext.initNNContext(conf)
     sqlContext = SQLContext.getOrCreate(sc)
+  }
+
+  "YOLOLoss" should "work properly" in {
+    val output: Tensor[Float] = Tensor(Array(1, 10647, 85))
+    val target: Tensor[Float] = Tensor(T(T(0.0000f, 60.0000f,  0.4988f,  0.4969f, 0.9950,  0.5629),
+      T(0.0000, 41.0000,  0.5121,  0.4345,  0.3277,  0.3328),
+      T(0.0000, 43.0000,  0.5036,  0.6295,  0.9203,  0.1533)))
+    val params = new YOLOLossParam()
+    val lossFunc = new YOLOLoss[Float](params)
+    lossFunc.forward(output, target)
   }
 
   "RoiFeatureLabelConverter" should "work properly" in{
