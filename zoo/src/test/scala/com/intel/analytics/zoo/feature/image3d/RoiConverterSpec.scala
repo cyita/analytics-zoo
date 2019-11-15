@@ -30,13 +30,23 @@ class RoiConverterSpec  extends ZooSpecHelper with Matchers {
   }
 
   "YOLOLoss" should "work properly" in {
-    val output: Tensor[Float] = Tensor(Array(1, 10647, 85))
+    val yolo1: Tensor[Float] = Tensor(Array(16, 3, 13, 13, 85))
+    val yolo2: Tensor[Float] = Tensor(Array(16, 3, 26, 26, 85))
+    val yolo3: Tensor[Float] = Tensor(Array(16, 3, 52, 52, 85))
+    val output = T(yolo1, yolo2, yolo3)
     val target: Tensor[Float] = Tensor(T(T(0.0000f, 60.0000f,  0.4988f,  0.4969f, 0.9950,  0.5629),
       T(0.0000, 41.0000,  0.5121,  0.4345,  0.3277,  0.3328),
       T(0.0000, 43.0000,  0.5036,  0.6295,  0.9203,  0.1533)))
-    val params = new YOLOLossParam()
+    val params = YOLOLossParam()
     val lossFunc = new YOLOLoss[Float](params)
     lossFunc.forward(output, target)
+  }
+
+  "Small test" should "work properly" in {
+//    val t = T(T(Tensor[Float](T(1f, 2f)), Tensor[Float](T(2f, 3f))), T(Tensor[Float](T(2f, 1f)), Tensor[Float](T(3f, 2f))))
+    val t = T(Tensor[Float](2, 2).fill(1f), Tensor[Float](2, 3).fill(2f))
+    println(t)
+//    println(T(Tensor(2,2).fill(1), Tensor(2,2).fill(2)))
   }
 
   "RoiFeatureLabelConverter" should "work properly" in{
