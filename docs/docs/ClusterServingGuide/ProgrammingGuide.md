@@ -161,7 +161,7 @@ You need to put your model file into a directory and the directory could have la
 Put the model in any of your local directory, and set `model:/path/to/dir`.
 
 #### 2.3 Other Configuration
-The field `input` contains your input data configuration.
+The field `data` contains your input data configuration.
 
 * src: the queue you subscribe for your input data, e.g. a default config of Redis on local machine is `localhost:6379`, note that please use the host address in your network instead of localhost or 127.0.0.1 when you run serving in cluster, make sure other nodes in cluster could also recognize this address.
 * image_shape: the shape of your input data, e.g. a default config for pretrained imagenet is `3,224,224`, you should use the same shape of data which trained your model, in Tensorflow the format is usually HWC and in other models the format is usually CHW.
@@ -184,6 +184,11 @@ For more details of these config, please refer to [Spark Official Document](http
 ### 3. Launching Service
 We provide following scripts to start, stop, restart Cluster Serving. 
 #### Start
+First you should create a directory to save redis logs.
+```
+sudo mkdir /opt/work
+sudo chmod 747 /opt/work
+```
 You can use following command to start Cluster Serving.
 ```
 cluster-serving-start

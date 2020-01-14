@@ -124,7 +124,7 @@ d = output_api.dequeue()
 
 for k in d.keys():
     output = "image: " + k + ", classification-result:"
-    tmp_dict = json.loads(result[k])
+    tmp_dict = json.loads(d[k])
     for class_idx in tmp_dict.keys():
         output += "class: " + class_idx + "'s prob: " + tmp_dict[class_idx]
     print(output)
