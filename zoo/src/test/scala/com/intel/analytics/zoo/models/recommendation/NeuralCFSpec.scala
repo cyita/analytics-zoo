@@ -35,6 +35,8 @@ import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, SQLContext}
+import com.intel.analytics.bigdl.numeric.NumericFloat
+import com.intel.analytics.zoo.pipeline.inference.InferenceModel
 
 
 class NeuralCFSpec extends ZooSpecHelper {
@@ -227,6 +229,13 @@ class NeuralCFSpec extends ZooSpecHelper {
   }
 
 
+  "NeuralCF" should "inference Inference model" in {
+    val model = new InferenceModel(1)
+    model.doLoadBigDL("/home/yina/Documents/model/ncf.model")
+    val userItemInput = Tensor(T(T(1.0f, 1193.0f), T(1.0f, 661.0f)))
+    val result = model.doPredict(userItemInput)
+    print("load success")
+  }
 }
 
 class NeuralCFSerialTest extends ModuleSerializationTest {
