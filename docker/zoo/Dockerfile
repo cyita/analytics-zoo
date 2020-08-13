@@ -53,7 +53,6 @@ RUN apt-get install -y python3-minimal && \
     pip install tornado==5.1.1 && \
     python3 -m ipykernel.kernelspec
 
-ADD analytics_zoo-0.9.0.dev0-py2.py3-none-manylinux1_x86_64.whl   /opt/work/
 ADD BF16/  /opt/work/BF16_examples
 
 CMD ["/bin/bash"]
