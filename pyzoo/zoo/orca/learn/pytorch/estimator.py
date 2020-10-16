@@ -16,6 +16,7 @@
 from zoo.pipeline.estimator.estimator import Estimator as SparkEstimator
 from zoo.orca.learn.pytorch.training_operator import TrainingOperator
 from zoo.orca.data import SparkXShards
+from zoo.orca.learn.estimator import BaseEstimator
 from bigdl.optim.optimizer import MaxEpoch
 from zoo.feature.common import FeatureSet
 
@@ -24,7 +25,7 @@ from torch.optim.optimizer import Optimizer as TorchOptimizer
 from torch.utils.data import DataLoader
 
 
-class Estimator(object):
+class Estimator(BaseEstimator):
     def fit(self, data, epochs, **kwargs):
         pass
 
@@ -32,6 +33,24 @@ class Estimator(object):
         pass
 
     def evaluate(self, data, **kwargs):
+        pass
+
+    def set_tensorboard(self, log_dir, app_name):
+        pass
+
+    def get_train_summary(self, **kwargs):
+        pass
+
+    def get_validation_summary(self, **kwargs):
+        pass
+
+    def clear_gradient_clipping(self):
+        pass
+
+    def set_constant_gradient_clipping(self, min, max):
+        pass
+
+    def set_l2_norm_gradient_clipping(self, clip_norm):
         pass
 
     def get_model(self):
