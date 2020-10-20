@@ -18,6 +18,7 @@ from bigdl.optim.optimizer import MaxEpoch
 
 from zoo.orca.learn.tf.utils import *
 from zoo.orca.learn.utils import find_latest_checkpoint
+from zoo.orca.learn.estimator import BaseEstimator
 from zoo.tfpark import KerasModel
 from zoo.tfpark import TFOptimizer, TFNet, ZooOptimizer
 from zoo.tfpark.tf_optimizer import StatelessMetric
@@ -25,7 +26,7 @@ from zoo.tfpark.utils import evaluate_metrics
 from zoo.util import nest
 
 
-class Estimator(object):
+class Estimator(BaseEstimator):
     def fit(self, data, epochs, **kwargs):
         pass
 
@@ -33,6 +34,24 @@ class Estimator(object):
         pass
 
     def evaluate(self, data, **kwargs):
+        pass
+
+    def get_model(self):
+        pass
+
+    def save(self, checkpoint):
+        pass
+
+    def load(self, checkpoint):
+        pass
+
+    def clear_gradient_clipping(self):
+        pass
+
+    def set_constant_gradient_clipping(self, min, max):
+        pass
+
+    def set_l2_norm_gradient_clipping(self, clip_norm):
         pass
 
     def load_orca_checkpoint(self, path, version):
