@@ -10,8 +10,9 @@ Download and install latest analytics whl by following instructions ([here](http
 ```bash
 conda create -y -n analytics-zoo python==3.7.7
 conda activate analytics-zoo
-pip install analytics_zoo-${VERSION}-${TIMESTAMP}-py2.py3-none-${OS}_x86_64.whl
+pip install analytics_zoo-${VERSION}    # install either version 0.9 or latest nightly build
 pip install tensorflow==1.15.0
+pip install tensorflow-datasets==2.0
 pip install psutil
 pip install pandas
 pip install scikit-learn
