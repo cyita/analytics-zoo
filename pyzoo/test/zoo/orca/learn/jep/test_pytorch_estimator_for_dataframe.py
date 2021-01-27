@@ -21,6 +21,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
+from pyspark.sql import SparkSession
+from pyspark.sql.types import ArrayType, DoubleType
+from pyspark.sql import SparkSession
 from zoo.orca import init_orca_context, stop_orca_context
 from zoo.orca.data.pandas import read_csv
 from zoo.orca.data import SparkXShards
@@ -36,12 +39,24 @@ resource_path = os.path.join(os.path.split(__file__)[0], "../../../resources")
 
 
 class TestEstimatorForDataFrame(TestCase):
-
     def setUp(self):
         """ setup any state tied to the execution of the given method in a
         class.  setup_method is invoked for every test method of a class.
         """
         self.sc = init_orca_context(cores=4)
+
+        def to_array_(v):
+            return v.toArray().tolist()
+
+        def flatten_(v):
+            result = []
+            for elem in v:
+                result.extend(elem.toArray().tolist())
+            return result
+
+        self.spark = SparkSession(self.sc)
+        self.spark.udf.register("to_array", to_array_, ArrayType(DoubleType()))
+        self.spark.udf.register("flatten", flatten_, ArrayType(DoubleType()))
 
     def tearDown(self):
         """ teardown any state that was previously setup with a setup_method
@@ -49,7 +64,7 @@ class TestEstimatorForDataFrame(TestCase):
         """
         stop_orca_context()
 
-    def test_bigdl_pytorch_estimator_dataframe(self):
+    def test_bigdl_pytorch_estimator_dataframe_predict(self):
         def loss_func(input, target):
             return nn.CrossEntropyLoss().forward(input, target.flatten().long())
 
@@ -57,18 +72,44 @@ class TestEstimatorForDataFrame(TestCase):
             def __init__(self):
                 super().__init__()
                 # need this line to avoid optimizer raise empty variable list
-                self.fc1 = nn.Linear(50, 50)
+                self.fc1 = nn.Linear(5, 5)
 
             def forward(self, input_):
-                return input_[:, 0]
+                return input_
 
         model = IdentityNet()
         rdd = self.sc.range(0, 100)
-        from pyspark.sql import SparkSession
-        spark = SparkSession(self.sc)
-        df = rdd.map(lambda x: (np.random.randn(50).astype(np.float).tolist(),
-                                [int(np.random.randint(0, 2, size=()))])
-                     ).toDF(["feature", "label"])
+        df = rdd.map(lambda x: ([float(x)] * 5,
+                                [int(np.random.randint(0, 2,
+                                                       size=()))])).toDF(["feature", "label"])
+
+        with tempfile.TemporaryDirectory() as temp_dir_name:
+            estimator = Estimator.from_torch(model=model, loss=loss_func,
+                                             optimizer=SGD(learningrate_schedule=Default()),
+                                             model_dir=temp_dir_name)
+            result = estimator.predict(df, feature_cols=["feature"])
+            expr = "sum(cast(feature <> to_array(prediction) as int)) as error"
+            assert result.selectExpr(expr).first()["error"] == 0
+
+    def test_bigdl_pytorch_estimator_dataframe_fit_evaluate(self):
+        class SimpleModel(nn.Module):
+            def __init__(self):
+                super(SimpleModel, self).__init__()
+                self.fc = nn.Linear(5, 5)
+
+            def forward(self, x):
+                x = self.fc(x)
+                return F.log_softmax(x, dim=1)
+
+        model = SimpleModel()
+
+        def loss_func(input, target):
+            return nn.CrossEntropyLoss().forward(input, target.flatten().long())
+
+        rdd = self.sc.range(0, 100)
+        df = rdd.map(lambda x: ([float(x)] * 5,
+                                [int(np.random.randint(0, 2,
+                                                       size=()))])).toDF(["feature", "label"])
 
         with tempfile.TemporaryDirectory() as temp_dir_name:
             estimator = Estimator.from_torch(model=model, loss=loss_func,
@@ -77,11 +118,9 @@ class TestEstimatorForDataFrame(TestCase):
             estimator.fit(data=df, epochs=4, batch_size=2, validation_data=df,
                           validation_metrics=[Accuracy()], checkpoint_trigger=EveryEpoch(),
                           feature_cols=["feature"], label_cols=["label"])
-            estimator.evaluate(df, validation_metrics=[Accuracy()], batch_size=2,
-                               feature_cols=["feature"], label_cols=["label"])
-            result = estimator.predict(df, feature_cols=["feature"])
-            result = np.concatenate([shard["prediction"] for shard in result.collect()])
-            assert np.array_equal(result, np.array(range(100)).astype(np.float))
+            eval_result = estimator.evaluate(df, validation_metrics=[Accuracy()], batch_size=2,
+                                             feature_cols=["feature"], label_cols=["label"])
+            assert isinstance(eval_result, dict)
 
 
 if __name__ == "__main__":
