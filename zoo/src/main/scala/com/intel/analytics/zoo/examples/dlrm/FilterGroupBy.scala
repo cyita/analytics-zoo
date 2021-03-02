@@ -4,7 +4,7 @@ import com.intel.analytics.zoo.common.NNContext
 import org.apache.spark.sql.{DataFrame, Dataset, Row, SQLContext}
 import scopt.OptionParser
 
-class FilterGroupBy {
+object FilterGroupBy {
   val CAT_COLS: List[Int] = (14 until 40).toList
 
   def read_parquet(spark: SQLContext, params: Params): Dataset[Row] ={
