@@ -14,10 +14,13 @@ object JoinPreprocess {
     Logger.getLogger("org").setLevel(Level.WARN)
     Logger.getLogger("akka").setLevel(Level.WARN)
 
-    val dataPath = "/var/backups/dlrm/terabyte/"
+//    val dataPath = "/var/backups/dlrm/terabyte/"
     //    val dataPath = "/home/kai/Downloads/dac_sample/"
     //    val dataPath = "hdfs://172.16.0.165:9000/dlrm/"
-    val modelPath = dataPath + "models/"
+//    val modelPath = dataPath + "models/"
+//    val parquetPath = dataPath + "parquet/"
+    val dataPath = "hdfs://172.168.0.108:9000/"
+    val modelPath = dataPath + "dlrm/na/models/"
     val parquetPath = dataPath + "parquet/"
     val sc = NNContext.initNNContext("DLRM Preprocess")
     println("Spark default parallelism: " + sc.defaultParallelism) // total cores
