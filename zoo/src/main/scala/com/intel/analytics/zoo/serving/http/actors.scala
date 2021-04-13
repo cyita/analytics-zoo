@@ -219,7 +219,7 @@ class QueryActor(redisGetActor: ActorRef) extends JedisEnabledActor {
       Thread.sleep(1)
       println(System.currentTimeMillis(), message.query.ids, results)
       if(results.size == 0) {
-        queryDelay += 1
+//        queryDelay += 1
         Thread.sleep(queryDelay)
         self ! message
 //        context.system.scheduler.scheduleOnce(1 milliseconds, self, message)
