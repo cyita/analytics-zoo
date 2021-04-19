@@ -317,4 +317,60 @@ class InferenceModelSpec extends FlatSpec with Matchers with BeforeAndAfter
     bModel.modelQueue.size() should be > 1
     bModel.modelQueue.size() should be <= 50
   }
+
+  "InferenceModel" should "inference" in {
+    import com.intel.analytics.bigdl.utils.T
+    val model = new InferenceModel(3)
+
+    model.doLoadTensorflow("/home/yina/Documents/model/dien", "frozenModel", 1, 1, true)
+//    val itemNumberArr = Array(2, 4, 10, 20, 15, 50)
+    val itemNumberArr = Array(50)
+    val item_arr = Array(1060, 1684, 914, 1335, 1435, 410, 916, 2049, 1181, 959, 946, 196,
+      415, 492, 619, 2269, 1033, 2012, 542, 622, 1013, 2604, 477, 1152, 2773, 909, 985, 2500,
+      374, 378, 88, 1713, 894, 1159, 1031, 324, 2577, 668, 30, 1387, 930, 1824, 834, 519, 1285,
+      2294, 2638, 3011, 3080, 141)
+    val cat_arr = Array(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 0, 0, 0,
+      0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0)
+    itemNumberArr.map(itemNumber => {
+      val t1 = Tensor[Float](itemNumber).fill(6674)
+      val t2 = Tensor[Float](itemNumber, 100).zero()
+      val t3 = Tensor[Float](itemNumber, 100).zero()
+      val t4 = Tensor[Float](itemNumber, 100).zero()
+      val t5 = Tensor[Float](itemNumber).fill(1)
+      val t6 = Tensor[Float](T.seq(item_arr.slice(0, itemNumber)))
+      val t7 = Tensor[Float](T.seq(cat_arr.slice(0, itemNumber)))
+      for(i <- 1 to itemNumber) {
+        t2.setValue(i, 1, 2559)
+        t4.setValue(i, 1, 1)
+      }
+      val inputSplitArr = Array(t1, t2, t3, t4, t5, t6, t7).map(i => {
+        i.split(17, 1)
+      })
+      val inputArr = (0 until 3).map(i => {
+        T.array(Array(inputSplitArr(0)(i), inputSplitArr(1)(i), inputSplitArr(2)(i),
+          inputSplitArr(3)(i), inputSplitArr(4)(i), inputSplitArr(5)(i), inputSplitArr(6)(i)))
+      })
+
+      val input = T.array(Array(t1, t2, t3, t4, t5, t6, t7))
+      for(i <- 0 until 100){
+        val result = model.doPredict(input)
+      }
+      for (t <- 0 until 3) {
+        val begin = System.currentTimeMillis()
+        val num = 1000
+        for(i <- 0 until num){
+//          val result = model.doPredict(input)
+          val resultArr = (0 until 3).toParArray.map(i => {
+            val d = inputArr(i)
+            val r = model.doPredict(d)
+            r
+          })
+          resultArr
+        }
+        val end = System.currentTimeMillis()
+        val time = (end - begin)/num
+        println(s"itemNumber: ${itemNumber}, t: ${t}, time: $time")
+      }
+    })
+  }
 }
