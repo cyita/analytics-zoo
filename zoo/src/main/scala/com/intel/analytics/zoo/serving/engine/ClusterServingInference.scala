@@ -258,3 +258,7 @@ class ClusterServingInference(preProcessing: PreProcessing,
     }
   }
 }
+object Timer {
+  var cnt = 0
+  var t = 0
+}

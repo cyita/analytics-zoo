@@ -20,15 +20,15 @@ import java.io.File
 import java.security.{KeyStore, SecureRandom}
 import java.util
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
-import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 
+import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
 import akka.actor.{ActorRef, ActorSystem, Props}
 import akka.http.scaladsl.{ConnectionContext, Http}
 import akka.http.scaladsl.server.Directives.{complete, path, _}
 import akka.pattern.ask
 import akka.stream.ActorMaterializer
 import akka.util.Timeout
-import com.codahale.metrics.MetricRegistry
+import com.codahale.metrics.{ConsoleReporter, MetricRegistry}
 import com.google.common.util.concurrent.RateLimiter
 import com.intel.analytics.zoo.pipeline.inference.EncryptSupportive
 import com.intel.analytics.zoo.serving.utils.Conventions
@@ -248,6 +248,12 @@ object FrontEndApp extends Supportive with EncryptSupportive {
   val getRedisTimer = metrics.timer("zoo.serving.redis.get")
   val waitRedisTimer = metrics.timer("zoo.serving.redis.wait")
   val metricsRequestTimer = metrics.timer("zoo.serving.request.metrics")
+
+  val reporter = ConsoleReporter.forRegistry(metrics)
+    .convertRatesTo(TimeUnit.SECONDS)
+    .convertDurationsTo(TimeUnit.MILLISECONDS).build()
+  reporter.start(100, TimeUnit.SECONDS)
+
 
   val jacksonJsonSerializer = new JacksonJsonSerializer()
 

@@ -77,14 +77,19 @@ object BytesPredictionInput {
     BytesPredictionInput(UUID.randomUUID().toString, str)
 }
 
-case class InstancesPredictionInput(uuid: String, instances: Instances) extends PredictionInput {
+case class InstancesPredictionInput(uuid: String, instances: Instances) extends PredictionInput
+ with Supportive {
   override def getId(): String = this.uuid
   override def toHash(): HashMap[String, String] = {
     val hash = new HashMap[String, String]()
-    val bytes = instances.toArrow()
-    val b64 = java.util.Base64.getEncoder.encodeToString(bytes)
-    hash.put("uri", uuid)
-    hash.put("data", b64)
+    val bytes = timing("to Arrow")() {
+      instances.toArrow()
+    }
+    timing("to b64 and put")(){
+      val b64 = java.util.Base64.getEncoder.encodeToString(bytes)
+      hash.put("uri", uuid)
+      hash.put("data", b64)
+    }
     hash
   }
 }

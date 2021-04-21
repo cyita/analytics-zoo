@@ -540,6 +540,17 @@ class InferenceModel(private var autoScalingEnabled: Boolean = true,
       val latency = end - begin
       val name = s"Thread ${Thread.currentThread().getId} Inference"
       InferenceSupportive.logger.info(s"$name time [${latency/1e9} s, ${latency/1e6} ms].")
+      if (timer.pre <= 0) {
+        timer.cnt += 1
+        timer.totalTime += latency
+        if (timer.cnt % 100 == 0){
+          val t = timer.totalTime/timer.cnt
+          InferenceSupportive.logger.info(s"$name avg time [${t/1e9} s, ${t/1e6} ms].")
+        }
+      } else {
+        timer.pre -= 1
+      }
+
 
       result
     } finally {
@@ -627,4 +638,10 @@ class InferenceModel(private var autoScalingEnabled: Boolean = true,
 
 object InferenceModel {
 
+}
+
+object timer {
+  var pre = 100
+  var cnt = 0
+  var totalTime: Long = 0
 }

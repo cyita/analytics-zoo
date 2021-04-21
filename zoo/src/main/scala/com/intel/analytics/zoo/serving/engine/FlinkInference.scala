@@ -77,7 +77,23 @@ class FlinkInference(helper: ClusterServingHelper)
     val t2 = System.nanoTime()
     logger.debug(s"${in.size} records backend time ${(t2 - t1) / 1e9} s. " +
       s"Throughput ${in.size / ((t2 - t1) / 1e9)}")
+    if (timer.pre <= 0) {
+      timer.cnt += 1
+      timer.totalTime += (t2 - t1)
+      if (timer.cnt % 100 == 0){
+        val t = timer.totalTime/timer.cnt
+        logger.info(s"backend total avg time [${t/1e9} s, ${t/1e6} ms].")
+      }
+    } else {
+      timer.pre -= 1
+    }
     postProcessed
   }
+}
+
+object timer {
+  var pre = 100
+  var cnt = 0
+  var totalTime: Long = 0
 }
 

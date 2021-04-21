@@ -172,7 +172,9 @@ class RedisGetActor(
         results.foreach(x => {
           val b64string = x._2.get("value")
           try {
-            x._2.put("value", ArrowDeserializer(b64string))
+            timing("arrow deserializer")() {
+              x._2.put("value", ArrowDeserializer(b64string))
+            }
           } catch {
             case _: Exception =>
           }
