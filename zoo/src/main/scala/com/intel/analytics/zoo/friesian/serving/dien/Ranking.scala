@@ -16,6 +16,7 @@
 package com.intel.analytics.zoo.friesian.serving.dien
 
 import com.intel.analytics.bigdl.tensor.Tensor
+import com.intel.analytics.bigdl.utils.T
 import com.intel.analytics.zoo.common.NNContext
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.functions.{col, max, udf}
@@ -90,7 +91,22 @@ object Ranking {
     userFeatures.show()
     val userIdList = List(6674, 9243)
     val itemIdList = List(1060, 1684)
-    val userF = getFeatures(userFeatures, "user", userIdList, userFeatureColumns)
-    val itemF = getFeatures(itemFeatures, "item", itemIdList, itemFeatureColumns)
+    val usersF = getFeatures(userFeatures, "user", userIdList, userFeatureColumns)
+    val itemsF = getFeatures(itemFeatures, "item", itemIdList, itemFeatureColumns)
+    val itemsIdList = Tensor[Int](T.seq(itemsF.map(itemF => {
+      itemF.head(1)
+    })))
+    val itemCatList = Tensor[Int](T.seq(itemsF.map(itemF => {
+      itemF(1)(1)
+    })))
+    val itemFList = Array(itemsIdList, itemCatList)
+    for (userF <- usersF) {
+      val itemLength = itemIdList.length
+      val userFList = userF.map(t => {
+        t.repeatTensor(Array(itemLength))
+      }).toArray
+      val input = T.array(userFList ++ itemFList)
+      input
+    }
   }
 }
