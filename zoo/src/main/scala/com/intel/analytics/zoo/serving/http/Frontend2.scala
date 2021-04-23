@@ -19,6 +19,7 @@ package com.intel.analytics.zoo.serving.http
 import java.io.File
 import java.security.{KeyStore, SecureRandom}
 import java.util
+import java.util.UUID
 import java.util.concurrent.{LinkedBlockingQueue, TimeUnit}
 
 import javax.net.ssl.{KeyManagerFactory, SSLContext, TrustManagerFactory}
@@ -33,14 +34,15 @@ import com.google.common.util.concurrent.RateLimiter
 import com.intel.analytics.zoo.pipeline.inference.EncryptSupportive
 import com.intel.analytics.zoo.serving.utils.Conventions
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.intel.analytics.bigdl.nn.abstractnn.Activity
 import org.apache.log4j.Logger
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await
 import scala.concurrent.duration.DurationInt
 
-object Frontend2 extends SSupportive with EncryptSupportive {
-  val logger = LoggerFactory.getLogger(getClass)
+object Frontend2 extends Supportive with EncryptSupportive {
+  override val logger = LoggerFactory.getLogger(getClass)
 
   val name = "analytics zoo web serving frontend"
 
@@ -50,8 +52,8 @@ object Frontend2 extends SSupportive with EncryptSupportive {
   implicit val timeout: Timeout = Timeout(100, TimeUnit.SECONDS)
 
   def main(args: Array[String]): Unit = {
-    timing(s"$name started successfully.") {
-      val arguments = timing("parse arguments") {
+    timing(s"$name started successfully.")() {
+      val arguments = timing("parse arguments")() {
         argumentsParser.parse(args, FrontEndAppArguments()) match {
           case Some(arguments) => logger.info(s"starting with $arguments"); arguments
           case None => argumentsParser.failure("miss args, please see the usage info"); null
@@ -63,18 +65,18 @@ object Frontend2 extends SSupportive with EncryptSupportive {
         case false => null
       }
       val actorName = s"redis-getter"
-      val ioActor = timing(s"$actorName initialized.") {
+      val ioActor = timing(s"$actorName initialized.")() {
         val getterProps = Props(new RedisIOActor())
         system.actorOf(getterProps, name = actorName)
       }
 
 
-      def processPredictionInput(inputs: Seq[PredictionInput]):
+      def processPredictionInput(inputs: Activity):
       Seq[PredictionOutput[String]] = {
-        val result = timing("response waiting") {
-          val ids = inputs.map(_.getId())
-          val results = timing(s"query message wait for key $ids") {
-            Await.result(ioActor ? DataInputMessage(inputs), timeout.duration)
+        val result = timing("response waiting")() {
+          val id = UUID.randomUUID().toString
+          val results = timing(s"query message wait for key $id")() {
+            Await.result(ioActor ? DataInputMessage(id, inputs), timeout.duration)
               .asInstanceOf[ModelOutputMessage].valueMap
           }
           val objectMapper = new ObjectMapper()
@@ -86,13 +88,13 @@ object Frontend2 extends SSupportive with EncryptSupportive {
         result.toSeq
       }
 
-      val route = timing("initialize http route") {
+      val route = timing("initialize http route")() {
         path("") {
-          timing("welcome") {
+          timing("welcome")() {
             complete("welcome to " + name)
           }
         } ~ (get & path("metrics")) {
-          timing("metrics") {
+          timing("metrics")() {
             val keys = metrics.getTimers().keySet()
             val servingMetrics = keys.toArray.map(key => {
               val timer = metrics.getTimers().get(key)
@@ -116,15 +118,12 @@ object Frontend2 extends SSupportive with EncryptSupportive {
               complete(500, error.toString)
             } else {
               try {
-                val result = timing("predict") {
-                  val instances = timing("json deserialization") {
-                    JsonUtil.fromJson(classOf[Instances], content)
+                val result = timing("predict")() {
+                  val input = timing("json deserialization")() {
+//                    JsonUtil.fromJson(classOf[Instances], content)
+                    ServingFrontendSerializer.deserialize(content)
                   }
-                  instances
-                  val inputs = instances.instances.map(instance => {
-                    InstancesPredictionInput(Instances(instance))
-                  })
-                  val outputs = processPredictionInput(inputs)
+                  val outputs = processPredictionInput(input)
                   Predictions(outputs)
                 }
 
@@ -306,13 +305,3 @@ case class FrontEndApp2Arguments(
                                  redissTrustStoreToken: String = "1234qwer"
                                )
 
-trait SSupportive {
-  def timing[T](name: String)(f: => T): T = {
-    val begin = System.nanoTime()
-    val result = f
-    val end = System.nanoTime()
-    val cost = (end - begin)
-    Logger.getLogger(getClass).info(s"$name time elapsed [${cost / 1e6} ms].")
-    result
-  }
-}
