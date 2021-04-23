@@ -35,7 +35,7 @@ import com.intel.analytics.zoo.pipeline.inference.EncryptSupportive
 import com.intel.analytics.zoo.serving.utils.Conventions
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.intel.analytics.bigdl.nn.abstractnn.Activity
-import org.apache.log4j.Logger
+import org.apache.log4j.{Level, Logger}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.Await
@@ -52,6 +52,7 @@ object Frontend2 extends Supportive with EncryptSupportive {
   implicit val timeout: Timeout = Timeout(100, TimeUnit.SECONDS)
 
   def main(args: Array[String]): Unit = {
+    Logger.getLogger("com.intel.analytics.zoo").setLevel(Level.ERROR)
     timing(s"$name started successfully.")() {
       val arguments = timing("parse arguments")() {
         argumentsParser.parse(args, FrontEndAppArguments()) match {
@@ -77,6 +78,23 @@ object Frontend2 extends Supportive with EncryptSupportive {
           val id = UUID.randomUUID().toString
           val results = timing(s"query message wait for key $id")() {
             Await.result(ioActor ? DataInputMessage(id, inputs), timeout.duration)
+              .asInstanceOf[ModelOutputMessage].valueMap
+          }
+          val objectMapper = new ObjectMapper()
+          results.map(r => {
+            val resultStr = objectMapper.writeValueAsString(r._2)
+            PredictionOutput(r._1, resultStr)
+          })
+        }
+        result.toSeq
+      }
+
+      def processPredictionB64Input(inputs: String):
+      Seq[PredictionOutput[String]] = {
+        val result = timing("response waiting")(waitRedisTimer) {
+          val id = UUID.randomUUID().toString
+          val results = timing(s"query message wait for key $id")() {
+            Await.result(ioActor ? DataB64JDeserMessage(id, inputs), timeout.duration)
               .asInstanceOf[ModelOutputMessage].valueMap
           }
           val objectMapper = new ObjectMapper()
@@ -156,6 +174,39 @@ object Frontend2 extends Supportive with EncryptSupportive {
                     s"Details: ${message}\n" +
                     s"Please refer to examples:\n" +
                     s"$exampleJson\n")
+                  complete(400, error.error)
+              }
+            }
+          }
+        } ~ (post & path("predictSer") & extract(_.request.entity.contentType) & entity
+        (as[String])) {
+          (contentType, content) => {
+            val rejected = arguments.tokenBucketEnabled match {
+              case true =>
+                if (!rateLimiter.tryAcquire(arguments.tokenAcquireTimeout, TimeUnit.MILLISECONDS)) {
+                  true
+                } else {
+                  false
+                }
+              case false => false
+            }
+            if (rejected) {
+              val error = ServingError("limited")
+              complete(500, error.toString)
+            } else {
+              try {
+                val result = timing("predict")(predictRequestTimer) {
+                  val outputs = processPredictionB64Input(content)
+                  Predictions(outputs)
+                }
+
+                complete(200, result.toString)
+
+              } catch {
+                case e =>
+                  val message = e.getMessage
+                  val error = ServingError(s"Wrong content format.\n" +
+                    s"Details: ${message}\n")
                   complete(400, error.error)
               }
             }

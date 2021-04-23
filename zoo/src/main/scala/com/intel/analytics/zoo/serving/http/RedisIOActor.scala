@@ -48,6 +48,11 @@ class RedisIOActor(redisOutputQueue: String = Conventions.RESULT_PREFIX + Conven
           })
         }
       }
+    case message: DataB64JDeserMessage =>
+      silent(s"${self.path.name} input message process")(){
+        enqueue(redisInputQueue, message)
+        requestMap += (Conventions.RESULT_PREFIX + Conventions.SERVING_STREAM_DEFAULT_NAME + ":" + message.id -> sender())
+      }
   }
   def enqueue(queue: String, input: DataInputMessage): Unit = {
     timing(s"${self.path.name} put request to redis")(FrontEndApp.putRedisTimer) {
@@ -60,6 +65,17 @@ class RedisIOActor(redisOutputQueue: String = Conventions.RESULT_PREFIX + Conven
       jedis.xadd(queue, null, hash)
     }
   }
+
+  def enqueue(queue: String, input: DataB64JDeserMessage): Unit = {
+    timing(s"${self.path.name} put request to redis")(FrontEndApp.putRedisTimer) {
+      val hash = new HashMap[String, String]()
+      hash.put("uri", input.id)
+      hash.put("data", input.inputs)
+      hash.put("serde", "stream")
+      jedis.xadd(queue, null, hash)
+    }
+  }
+
   def dequeue(queue: String): mutable.Set[(String, util.Map[String, String])] = {
     val resultSet = jedis.keys(s"${queue}*")
     val res = resultSet.asScala.map(key => {

@@ -56,7 +56,7 @@ object ClusterServing {
      * Flink environment parallelism depends on model parallelism
      */
     // Uncomment this line if you need to check predict time in debug
-    // Logger.getLogger("com.intel.analytics.zoo").setLevel(Level.DEBUG)
+    Logger.getLogger("com.intel.analytics.zoo").setLevel(Level.ERROR)
     streamingEnv.setParallelism(helper.modelParallelism)
     streamingEnv.addSource(new FlinkRedisSource(helper))
       .map(new FlinkInference(helper))

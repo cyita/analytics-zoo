@@ -16,6 +16,7 @@
 package com.intel.analytics.zoo.friesian.serving.dien
 
 import com.intel.analytics.bigdl.tensor.{Storage, Tensor}
+import com.intel.analytics.zoo.serving.serialization.{ArrowDeserializer, StreamSerializer}
 import com.intel.analytics.bigdl.utils.T
 import com.intel.analytics.zoo.common.NNContext
 import com.intel.analytics.zoo.pipeline.inference.InferenceModel
@@ -95,14 +96,14 @@ object Ranking {
     val model = new InferenceModel(1)
     model.doLoadTensorflow("/home/yina/Documents/model/dien", "frozenModel", 1, 1, true)
 
+    val itemNumber = 16
     val userIdList = List(6674, 9243)
     val itemIdList = List(1060, 1684, 914, 1335, 1435, 410, 916, 2049, 1181, 959, 946, 196,
       415, 492, 619, 2269, 1033, 2012, 542, 622, 1013, 2604, 477, 1152, 2773, 909, 985, 2500,
       374, 378, 88, 1713, 894, 1159, 1031, 324, 2577, 668, 30, 1387, 930, 1824, 834, 519, 1285,
-      2294, 2638, 3011, 3080, 141)
-    val itemNumber = 16
+      2294, 2638, 3011, 3080, 141).slice(0, itemNumber)
     val usersF = getFeatures(userFeatures, "user", userIdList, userFeatureColumns)
-    val itemsF = getFeatures(itemFeatures, "item", itemIdList.slice(0, itemNumber), itemFeatureColumns)
+    val itemsF = getFeatures(itemFeatures, "item", itemIdList, itemFeatureColumns)
     val itemsIdList = Tensor[Float](T.seq(itemsF.map(itemF => {
       itemF.head
     })))
@@ -119,6 +120,8 @@ object Ranking {
             .size))
       }.toArray
       val input = T.array(userFList ++ itemFList)
+      val bytes = StreamSerializer.objToBytes(input)
+      val b64 = java.util.Base64.getEncoder.encodeToString(bytes)
       val result = model.doPredict(input)
       result
     }

@@ -12,6 +12,7 @@ case class PutEndMessage(key: String, actor: ActorRef)
 case class DequeueMessage()
 case class ModelOutputMessage(valueMap: mutable.Map[String, String])
 case class DataInputMessage(id: String, inputs: Activity)
+case class DataB64JDeserMessage(id: String, inputs: String)
 
 case class TestInputMessage(inputs: String)
 case class TestOutputMessage(inputs: String)
