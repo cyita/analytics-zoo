@@ -15,9 +15,10 @@
  */
 package com.intel.analytics.zoo.friesian.serving.dien
 
-import com.intel.analytics.bigdl.tensor.Tensor
+import com.intel.analytics.bigdl.tensor.{Storage, Tensor}
 import com.intel.analytics.bigdl.utils.T
 import com.intel.analytics.zoo.common.NNContext
+import com.intel.analytics.zoo.pipeline.inference.InferenceModel
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.sql.functions.{col, max, udf}
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -63,18 +64,19 @@ object Ranking {
   }
 
   def getFeatures(df: DataFrame, key: String, ids: List[Int], featureColumns: List[String])
-  : Array[Seq[Tensor[Int]]] = {
+  : Array[Seq[Any]] = {
     val conditions = ids.map(id => s"$key = $id").mkString(" or ")
     val features = df.filter(conditions).select(featureColumns.map(col):_*)
     val featuresList = features.rdd.map(row => {
-      val rowd = row.toSeq
       val tensors = row.toSeq.map {
-        case d: Int  => Tensor[Int](1).fill(d).addSingletonDimension()
-        case d: Long => Tensor[Int](1).fill(d.toInt).addSingletonDimension()
-        case d: mutable.WrappedArray[Int] =>
-          Tensor[Int](d.toArray, Array(1, d.size))
-        case data => throw new IllegalArgumentException(
-          s"Unsupported value type ${data.getClass.getName}.")
+//        case d: Int  => Tensor[Int](1).fill(d).addSingletonDimension()
+//        case d: Long => Tensor[Int](1).fill(d.toInt).addSingletonDimension()
+//        case d: mutable.WrappedArray[Int] =>
+//          Tensor[Int](d.toArray, Array(1, d.size))
+//        case data => throw new IllegalArgumentException(
+//          s"Unsupported value type ${data.getClass.getName}.")
+        case d: Long => d.toInt
+        case data => data
       }
       tensors
     }).collect()
@@ -89,24 +91,36 @@ object Ranking {
     loadUserItemFeatures(spark)
     itemFeatures.show()
     userFeatures.show()
+
+    val model = new InferenceModel(1)
+    model.doLoadTensorflow("/home/yina/Documents/model/dien", "frozenModel", 1, 1, true)
+
     val userIdList = List(6674, 9243)
-    val itemIdList = List(1060, 1684)
+    val itemIdList = List(1060, 1684, 914, 1335, 1435, 410, 916, 2049, 1181, 959, 946, 196,
+      415, 492, 619, 2269, 1033, 2012, 542, 622, 1013, 2604, 477, 1152, 2773, 909, 985, 2500,
+      374, 378, 88, 1713, 894, 1159, 1031, 324, 2577, 668, 30, 1387, 930, 1824, 834, 519, 1285,
+      2294, 2638, 3011, 3080, 141)
+    val itemNumber = 16
     val usersF = getFeatures(userFeatures, "user", userIdList, userFeatureColumns)
-    val itemsF = getFeatures(itemFeatures, "item", itemIdList, itemFeatureColumns)
-    val itemsIdList = Tensor[Int](T.seq(itemsF.map(itemF => {
-      itemF.head(1)
+    val itemsF = getFeatures(itemFeatures, "item", itemIdList.slice(0, itemNumber), itemFeatureColumns)
+    val itemsIdList = Tensor[Float](T.seq(itemsF.map(itemF => {
+      itemF.head
     })))
-    val itemCatList = Tensor[Int](T.seq(itemsF.map(itemF => {
-      itemF(1)(1)
+    val itemCatList = Tensor[Float](T.seq(itemsF.map(itemF => {
+      itemF(1)
     })))
     val itemFList = Array(itemsIdList, itemCatList)
     for (userF <- usersF) {
       val itemLength = itemIdList.length
-      val userFList = userF.map(t => {
-        t.repeatTensor(Array(itemLength))
-      }).toArray
+      val userFList = userF.map {
+        case d: Int => Tensor[Float](itemLength).fill(d)
+        case d: mutable.WrappedArray[Int] =>
+          Tensor[Float](Array.fill(itemLength)(d.toArray.map(_.toFloat)).flatten, Array(itemLength, d
+            .size))
+      }.toArray
       val input = T.array(userFList ++ itemFList)
-      input
+      val result = model.doPredict(input)
+      result
     }
   }
 }
