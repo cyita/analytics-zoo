@@ -57,7 +57,7 @@ class PreProcessing(chwFlag: Boolean = true,
         }
         else {
           (kv._1, decodeTensor(kv._2.asInstanceOf[(
-            ArrayBuffer[Int], ArrayBuffer[Any], ArrayBuffer[Int], ArrayBuffer[Int])]))
+            ArrayBuffer[Int], ArrayBuffer[Float], ArrayBuffer[Int], ArrayBuffer[Int])]))
         }
       ).toList
       val arr = oneInsMap.map(x => x._2)
@@ -122,16 +122,10 @@ class PreProcessing(chwFlag: Boolean = true,
       imageTensor
     }
   }
-  def decodeTensor(info: (ArrayBuffer[Int], ArrayBuffer[Any],
+  def decodeTensor(info: (ArrayBuffer[Int], ArrayBuffer[Float],
     ArrayBuffer[Int], ArrayBuffer[Int])): Tensor[Float] = {
-    val data = if (info._2.isInstanceOf[ArrayBuffer[Double]]) {
-      var a = new ArrayBuffer[Float]()
-      info._2.asInstanceOf[ArrayBuffer[Double]].foreach(x => a.append(x.toFloat))
-      a.toArray
-    }
-    else {
-      info._2.asInstanceOf[ArrayBuffer[Float]].toArray
-    }
+    val data =
+      info._2.toArray
 
     val shape = info._1.toArray
     if (info._3.size == 0) {
