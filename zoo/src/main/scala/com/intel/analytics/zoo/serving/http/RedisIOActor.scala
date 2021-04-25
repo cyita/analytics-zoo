@@ -33,7 +33,13 @@ class RedisIOActor(redisOutputQueue: String = Conventions.RESULT_PREFIX + Conven
 
         requestMap += (Conventions.RESULT_PREFIX + Conventions.SERVING_STREAM_DEFAULT_NAME + ":" + message.id -> sender())
       }
-    case message: DequeueMessage => {
+    case message: DataB64JDeserMessage =>
+      silent(s"${self.path.name} input message process")() {
+        enqueue(redisInputQueue, message)
+
+        requestMap += (Conventions.RESULT_PREFIX + Conventions.SERVING_STREAM_DEFAULT_NAME + ":" + message.id -> sender())
+      }
+    case _: DequeueMessage => {
         if (!requestMap.isEmpty) {
           dequeue(redisOutputQueue).foreach(result => {
 //            logger.info(s"${System.currentTimeMillis()} Get redis result at time ")
@@ -44,33 +50,22 @@ class RedisIOActor(redisOutputQueue: String = Conventions.RESULT_PREFIX + Conven
               requestMap -= result._1
 //              logger.info(s"${System.currentTimeMillis()} Send ${result._1} back at time ")
             }
-
           })
         }
       }
-    case message: DataB64JDeserMessage =>
-      silent(s"${self.path.name} input message process")(){
-        enqueue(redisInputQueue, message)
-        requestMap += (Conventions.RESULT_PREFIX + Conventions.SERVING_STREAM_DEFAULT_NAME + ":" + message.id -> sender())
+  }
+  def enqueue(queue: String, input: Any): Unit = {
+    timing(s"${self.path.name} put request to redis")(FrontEndApp.putRedisTimer) {
+      val hash = new HashMap[String, String]()
+      val (id, b64) = input match {
+        case d: DataB64JDeserMessage => (d.id, d.inputs)
+        case d: DataInputMessage =>
+          val bytes = StreamSerializer.objToBytes(d.inputs)
+          (d.id, java.util.Base64.getEncoder.encodeToString(bytes))
+        case _ => throw new IllegalArgumentException(s"$input is not supported.")
       }
-  }
-  def enqueue(queue: String, input: DataInputMessage): Unit = {
-    timing(s"${self.path.name} put request to redis")(FrontEndApp.putRedisTimer) {
-      val hash = new HashMap[String, String]()
-      val bytes = StreamSerializer.objToBytes(input.inputs)
-      val b64 = java.util.Base64.getEncoder.encodeToString(bytes)
-      hash.put("uri", input.id)
+      hash.put("uri", id)
       hash.put("data", b64)
-      hash.put("serde", "stream")
-      jedis.xadd(queue, null, hash)
-    }
-  }
-
-  def enqueue(queue: String, input: DataB64JDeserMessage): Unit = {
-    timing(s"${self.path.name} put request to redis")(FrontEndApp.putRedisTimer) {
-      val hash = new HashMap[String, String]()
-      hash.put("uri", input.id)
-      hash.put("data", input.inputs)
       hash.put("serde", "stream")
       jedis.xadd(queue, null, hash)
     }
