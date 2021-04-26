@@ -46,7 +46,7 @@ object ClusterServing {
       .action((x, params) => params.copy(configPath = x))
     opt[Boolean]("openLog")
       .text("Whether to open log")
-      .action((x, params) => params.copy(timerMode = x))
+      .action((x, params) => params.copy(openLog = x))
     opt[Boolean]("timerMode")
       .text("Whether to open timer mode")
       .action((x, params) => params.copy(timerMode = x))
