@@ -30,6 +30,7 @@ import scopt.OptionParser
 
 object ClusterServing {
   case class ServingParams(configPath: String = "config.yaml",
+                           openLog: Boolean = false,
                            timerMode: Boolean = false)
   val logger = Logger.getLogger(getClass)
   var argv: ServingParams = _
@@ -43,6 +44,9 @@ object ClusterServing {
     opt[String]('c', "configPath")
       .text("Config Path of Cluster Serving")
       .action((x, params) => params.copy(configPath = x))
+    opt[Boolean]("openLog")
+      .text("Whether to open log")
+      .action((x, params) => params.copy(timerMode = x))
     opt[Boolean]("timerMode")
       .text("Whether to open timer mode")
       .action((x, params) => params.copy(timerMode = x))
@@ -56,7 +60,6 @@ object ClusterServing {
      * Flink environment parallelism depends on model parallelism
      */
     // Uncomment this line if you need to check predict time in debug
-    Logger.getLogger("com.intel.analytics.zoo").setLevel(Level.ERROR)
     streamingEnv.setParallelism(helper.modelParallelism)
     streamingEnv.addSource(new FlinkRedisSource(helper))
       .map(new FlinkInference(helper))
@@ -70,6 +73,9 @@ object ClusterServing {
     argv = parser.parse(args, ServingParams()).head
     val configParser = new ConfigParser(argv.configPath)
     helper = configParser.loadConfig()
+    if (!argv.openLog) {
+      Logger.getLogger("com.intel.analytics.zoo").setLevel(Level.ERROR)
+    }
     uploadModel()
     executeJob()
   }
