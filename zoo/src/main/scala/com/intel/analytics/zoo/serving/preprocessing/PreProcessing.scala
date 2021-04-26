@@ -29,18 +29,15 @@ import com.intel.analytics.bigdl.utils.{T, Table}
 import com.intel.analytics.zoo.pipeline.inference.{EncryptSupportive, InferenceSupportive}
 import com.intel.analytics.zoo.serving.http.Instances
 import com.intel.analytics.zoo.serving.serialization.StreamSerializer
-import com.intel.analytics.zoo.serving.utils.Conventions
+import com.intel.analytics.zoo.serving.utils.{ClusterServingHelper, Conventions}
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import redis.clients.jedis.Jedis
 
-class PreProcessing(chwFlag: Boolean = true,
-                    redisHost: String = "localhost",
-                    redisPort: Int = 6379,
-                    jobName: String = Conventions.SERVING_STREAM_DEFAULT_NAME,
-                    recordEncrypted: Boolean = false)
+class PreProcessing()
   extends EncryptSupportive with InferenceSupportive {
   val logger = Logger.getLogger(getClass)
+  val helper = ClusterServing.helper
 
   var byteBuffer: Array[Byte] = null
   def getInputFromInstance(instance: Instances): Seq[Activity] = {
@@ -94,7 +91,7 @@ class PreProcessing(chwFlag: Boolean = true,
   }
 
   def decodeImage(s: String, idx: Int = 0): Tensor[Float] = {
-    byteBuffer = if (recordEncrypted) {
+    byteBuffer = if (helper.recordEncrypted) {
       val bytes = timing(s"base64decoding") {
         logger.debug("String size " + s.length)
         java.util.Base64.getDecoder.decode(s)
@@ -115,7 +112,7 @@ class PreProcessing(chwFlag: Boolean = true,
     OpenCVMat.toFloatPixels(mat, arrayBuffer)
 
     val imageTensor = Tensor[Float](arrayBuffer, Array(height, width, channel))
-    if (chwFlag) {
+    if (helper.chwFlag) {
       imageTensor.transpose(1, 3)
         .transpose(2, 3).contiguous()
     } else {
