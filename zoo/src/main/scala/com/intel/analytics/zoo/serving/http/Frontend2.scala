@@ -52,13 +52,16 @@ object Frontend2 extends Supportive with EncryptSupportive {
   implicit val timeout: Timeout = Timeout(100, TimeUnit.SECONDS)
 
   def main(args: Array[String]): Unit = {
-    Logger.getLogger("com.intel.analytics.zoo").setLevel(Level.ERROR)
     timing(s"$name started successfully.")() {
       val arguments = timing("parse arguments")() {
-        argumentsParser.parse(args, FrontEndAppArguments()) match {
+        argumentsParser.parse(args, FrontEndApp2Arguments()) match {
           case Some(arguments) => logger.info(s"starting with $arguments"); arguments
           case None => argumentsParser.failure("miss args, please see the usage info"); null
         }
+      }
+
+      if (!arguments.openLog) {
+        Logger.getLogger("com.intel.analytics.zoo").setLevel(Level.ERROR)
       }
 
       val rateLimiter: RateLimiter = arguments.tokenBucketEnabled match {
@@ -246,7 +249,7 @@ object Frontend2 extends Supportive with EncryptSupportive {
 
   val jacksonJsonSerializer = new JacksonJsonSerializer()
 
-  val argumentsParser = new scopt.OptionParser[FrontEndAppArguments]("AZ Serving") {
+  val argumentsParser = new scopt.OptionParser[FrontEndApp2Arguments]("AZ Serving") {
     head("Analytics Zoo Serving Frontend")
     opt[String]('i', "interface")
       .action((x, c) => c.copy(interface = x))
@@ -308,6 +311,9 @@ object Frontend2 extends Supportive with EncryptSupportive {
     opt[String]('w', "redissTrustStoreToken")
       .action((x, c) => c.copy(redissTrustStoreToken = x))
       .text("rediss trustStore password")
+    opt[Boolean]("openLog")
+      .action((x, c) => c.copy(openLog = x))
+      .text("log enabled or not")
   }
 
   def defineServerContext(httpsKeyStoreToken: String,
@@ -353,6 +359,7 @@ case class FrontEndApp2Arguments(
                                  httpsKeyStoreToken: String = "1234qwer",
                                  redisSecureEnabled: Boolean = false,
                                  redissTrustStorePath: String = null,
-                                 redissTrustStoreToken: String = "1234qwer"
+                                 redissTrustStoreToken: String = "1234qwer",
+                                 openLog: Boolean = true
                                )
 
