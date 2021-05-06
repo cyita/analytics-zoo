@@ -28,7 +28,7 @@ class RedisIOActor(redisOutputQueue: String = Conventions.RESULT_PREFIX + Conven
   override def receive: Receive = {
     case message: DataInputMessage =>
       silent(s"${self.path.name} input message process")() {
-//        logger.info(s"${System.currentTimeMillis()} Input enqueue ${message.id} at time ")
+        logger.info(s"${System.currentTimeMillis()} Input enqueue ${message.id} at time ")
         enqueue(redisInputQueue, message)
 
         requestMap += (Conventions.RESULT_PREFIX + Conventions.SERVING_STREAM_DEFAULT_NAME + ":" + message.id -> sender())
@@ -42,13 +42,13 @@ class RedisIOActor(redisOutputQueue: String = Conventions.RESULT_PREFIX + Conven
     case _: DequeueMessage => {
         if (!requestMap.isEmpty) {
           dequeue(redisOutputQueue).foreach(result => {
-//            logger.info(s"${System.currentTimeMillis()} Get redis result at time ")
+            logger.info(s"${System.currentTimeMillis()} Get redis result at time ")
             val queryOption = requestMap.get(result._1)
             if (queryOption != None) {
               val queryResult = result._2.asScala
               queryOption.get ! ModelOutputMessage(queryResult)
               requestMap -= result._1
-//              logger.info(s"${System.currentTimeMillis()} Send ${result._1} back at time ")
+              logger.info(s"${System.currentTimeMillis()} Send ${result._1} back at time ")
             }
           })
         }
@@ -59,9 +59,7 @@ class RedisIOActor(redisOutputQueue: String = Conventions.RESULT_PREFIX + Conven
       val hash = new HashMap[String, String]()
       val (id, b64) = input match {
         case d: DataB64JDeserMessage => (d.id, d.inputs)
-        case d: DataInputMessage =>
-          val bytes = StreamSerializer.objToBytes(d.inputs)
-          (d.id, java.util.Base64.getEncoder.encodeToString(bytes))
+        case d: DataInputMessage => (d.id, d.inputs)
         case _ => throw new IllegalArgumentException(s"$input is not supported.")
       }
       hash.put("uri", id)

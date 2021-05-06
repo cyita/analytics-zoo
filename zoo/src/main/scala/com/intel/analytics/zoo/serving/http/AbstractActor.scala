@@ -10,5 +10,5 @@ class AbstractActor {
 }
 case class DequeueMessage()
 case class ModelOutputMessage(valueMap: mutable.Map[String, String])
-case class DataInputMessage(id: String, inputs: Activity)
+case class DataInputMessage(id: String, inputs: String)
 case class DataB64JDeserMessage(id: String, inputs: String)
