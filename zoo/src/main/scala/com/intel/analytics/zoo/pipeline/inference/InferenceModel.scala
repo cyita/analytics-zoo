@@ -529,30 +529,56 @@ class InferenceModel(private var autoScalingEnabled: Boolean = true,
   def doRelease(): Unit = {
     clearModelQueue()
   }
-
+  import org.scalameter._
   private def predict(inputActivity: Activity): Activity = {
-    val model = retrieveModel()
+    var model: AbstractModel = null
+    val rt = measure {
+      model = retrieveModel()
+    }
+//    println(s"retrieve time $rt")
     try {
       val begin = System.nanoTime()
-      val result = model.predict(inputActivity)
+      var result: Activity = null
+//      val pt = config(
+//          Key.exec.benchRuns -> 1,
+//          Key.verbose -> true
+//        ) withWarmer {
+//          new Warmer.Default
+//        } measure {
+//          result = model.predict(inputActivity)
+//        }
+
+//      withMeasurer {
+//        new Measurer.IgnoringGC
+//      }
+            val pt = measure {
+          result = model.predict(inputActivity)
+        }
+//      println(s"predict time $pt")
+//      val result = model.predict(inputActivity)
       val end = System.nanoTime()
 
       val latency = end - begin
       val name = s"Thread ${Thread.currentThread().getId} Inference"
-      InferenceSupportive.logger.info(s"$name time [${latency/1e9} s, ${latency/1e6} ms].")
+//      InferenceSupportive.logger.info(s"$name time [${latency/1e9} s, ${latency/1e6} ms].")
 
       result
     } finally {
-      model match {
-        case null =>
-        case _ =>
-          val success = modelQueue.offer(model)
-          success match {
-            case true =>
-            case false => model.release()
-          }
+      val ot = measure {
+        model match {
+          case null =>
+          case _ =>
+            val success = modelQueue.offer(model)
+            success match {
+              case true =>
+              case false => model.release()
+            }
+        }
       }
+
+//      println(s"offer time $ot")
     }
+
   }
 
   private def predict(inputs: JList[JList[JTensor]]): JList[JList[JTensor]] = {
