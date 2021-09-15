@@ -39,6 +39,19 @@ class TestTable(TestCase):
         """
         self.resource_path = os.path.join(os.path.split(__file__)[0], "../../resources")
 
+    def test_cat_test(self):
+        spark = OrcaContext.get_spark_session()
+        input = "/home/yina/Documents/data/cat_str"
+        item_df = spark.read.parquet(input)
+        item_df.show()
+        print(item_df.count())
+        item_tbl = FeatureTable(item_df)
+        category_index = item_tbl.gen_string_idx(["category"])
+        encoded = item_tbl.encode_string(["category"], category_index)
+        print(item_tbl.df.select("category").distinct().count())
+        print(category_index[0].df.select("category").count())
+        print(encoded.df.select("category").count())
+
     def test_apply(self):
         file_path = os.path.join(self.resource_path, "friesian/feature/parquet/data1.parquet")
         feature_tbl = FeatureTable.read_parquet(file_path)
